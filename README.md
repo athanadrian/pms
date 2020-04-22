@@ -1,6 +1,6 @@
-# fees-dbms-API
+# PMS-API
 
-API for managing common fees of buildings, Mongo-Express-Node
+API for managing properties, MERN
 
 ## Start Server
 
