@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema(
     username: {
       type: String,
       trim: true,
-      required: [true, 'Please add a user name'],
+      //required: [true, 'Please add a user name'],
       maxlength: [32, 'Name can not exceed 32 characters']
     },
     firstname: {
@@ -43,7 +43,7 @@ const UserSchema = new mongoose.Schema(
       //   "Please add a valid email"
       // ]
     },
-    photo: String,
+    picture: String,
     role: {
       type: String,
       required: [true, 'A user must have a role.'],
@@ -51,17 +51,17 @@ const UserSchema = new mongoose.Schema(
         values: ['user', 'manager', 'admin'],
         message: "User's role is either resident, manager, admin"
       },
-      default: 'resident'
+      default: 'user'
     },
     password: {
       type: String,
-      required: [true, 'Please add a password'],
+      //required: [true, 'Please add a password'],
       minlength: 6,
       select: false
     },
     passwordConfirm: {
       type: String,
-      required: [true, 'Please confirm your password'],
+      //required: [true, 'Please confirm your password'],
       select: false,
       validate: {
         // This works on CREATE and SAVE

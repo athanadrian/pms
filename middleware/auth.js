@@ -25,11 +25,11 @@ exports.protect = asyncHandler(async (req, res, next) => {
       401
     );
   }
-  // 4) Check if user chnged password after token was issued
+  // 4) Check if user changed password after token was issued
   if (currentUser.changedPasswordAfterLogin(decoded.iat)) {
     return next(
       new ErrorResponse(
-        'The user has recently changed password! You need to log in agaim.'
+        'The user has recently changed password! You need to log in again.'
       ),
       401
     );
@@ -42,7 +42,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
 // Grant access to specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    // Check if user's role is inside authrization roles
+    // Check if user's role is inside authorization roles
     if (!roles.includes(req.user.role)) {
       console.log('role ', req.user.role);
       next(

@@ -5,7 +5,7 @@ const { protect, authorize } = require('../middleware/auth');
 const {
   getAllUsers,
   getUserById,
-  getMe,
+  getProfile,
   updateUserDetails,
   deleteUser,
   restoreUser,
@@ -20,7 +20,7 @@ router.use('/:userId/fees', protect, feesRouter);
 router.use(protect);
 
 router.get('/', authorize('admin', 'manager'), getAllUsers);
-router.get('/me', getMe, getUserById);
+router.get('/profile', getProfile, getUserById);
 router
   .route('/:id')
   .get(authorize('admin', 'manager'), getUserById)

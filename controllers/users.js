@@ -14,7 +14,10 @@ const filterObjFields = (obj, ...allowFields) => {
   return filteredObj;
 };
 
-exports.getMe = asyncHandler(async (req, res, next) => {
+//@desc         Get Current Logged-in User
+//@route        GET /api/v1/users/profile
+//@access       Private - User
+exports.getProfile = asyncHandler(async (req, res, next) => {
   req.params.id = req.user.id;
   next();
 });

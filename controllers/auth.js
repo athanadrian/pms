@@ -1,8 +1,11 @@
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const sendEmail = require('../utils/sendEmail');
+
+const client = new OAuth2Client(process.env.OAUTH_CLIENT_ID);
 
 // Helper function to get token from model create cookie and send back response
 const sendTokenResponse = (user, statusCode, res) => {
@@ -25,11 +28,12 @@ const sendTokenResponse = (user, statusCode, res) => {
     });
 };
 
-//@desc         Singup - Register User
-//@route        POST /api/v1/auth/signup
+//@desc         register - Register User
+//@route        POST /api/v1/auth/register
 //@access       Public
-exports.singup = asyncHandler(async (req, res, next) => {
+exports.registerByAuth = asyncHandler(async (req, res, next) => {
   const { username, email, password, passwordConfirm } = req.body;
+  console.log('req.body', username, email, password, passwordConfirm);
   const newUser = await User.create({
     username,
     email,
@@ -41,12 +45,80 @@ exports.singup = asyncHandler(async (req, res, next) => {
   sendTokenResponse(newUser, 201, res);
 });
 
-//@desc         Singin - Login User
-//@route        POST /api/v1/auth/signin
-//@access       Public
-exports.signin = asyncHandler(async (req, res, next) => {
-  const { email, password } = req.body;
+const verifyGoogleAuthToken = async token => {
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.OAUTH_CLIENT_ID
+    });
+    return ticket.getPayload();
+  } catch (err) {
+    console.error('Error verifying auth token', err);
+  }
+};
 
+const checkIfUserExists = async email => await User.findOne({ email }).exec();
+
+const createNewUser = googleUser => {
+  //console.log('gUser', googleUser);
+  const { name, email, picture } = googleUser;
+  const newUser = new User({
+    // method: 'google',
+    // google: {
+    //   name,
+    //   email,
+    //   picture
+    // }
+    username: name,
+    email,
+    picture
+  });
+  return newUser.save();
+};
+
+///@desc        Google Register - Register User via Google
+//@route        POST /api/v1/google/register
+//@access       Public
+exports.registerByGoogle = asyncHandler(async (req, res, next) => {
+  // get idToken from body
+  const { idToken } = req.body;
+  // verify auth token
+  const googleUser = await verifyGoogleAuthToken(idToken);
+
+  // check if the user exists
+  const user = await checkIfUserExists(googleUser.email);
+  // if user exists, return user
+  if (user) {
+    sendTokenResponse(user, 200, res);
+  }
+
+  // if user does not exists, create new user in db
+  const newUser = await createNewUser(googleUser);
+  // return user
+  sendTokenResponse(newUser, 200, res);
+});
+
+//@desc         Facebook Register - Register User via Facebook
+//@route        POST /api/v1/facebook/register
+//@access       Public
+exports.registerByFacebook = asyncHandler(async (req, res, next) => {
+  // const { username, email, password, passwordConfirm } = req.body;
+  // const newUser = await User.create({
+  //   username,
+  //   email,
+  //   password,
+  //   passwordConfirm
+  // });
+  // Log user in. Send JWT
+  // sendTokenResponse(newUser, 201, res);
+});
+
+//@desc         Login - Login User
+//@route        POST /api/v1/auth/login
+//@access       Public
+exports.login = asyncHandler(async (req, res, next) => {
+  const { email, password } = req.body;
+  console.log('login', email, password);
   // Check if email and password exists
   if (!email || !password) {
     return next(new ErrorResponse('Please provide email and password.', 400));
@@ -97,7 +169,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
     });
     res.status(200).json({
       status: 'success',
-      message: 'You atempted to change your password. Email has been send'
+      message: 'You attempted to change your password. Email has been send'
     });
   } catch (error) {
     console.log(error);
@@ -111,10 +183,10 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 });
 
 //@desc         Reset Password
-//@route        PATCHE /api/v1/auth/reset-password/:resetToken
+//@route        PATCH /api/v1/auth/reset-password/:resetToken
 //@access       Public
 exports.resetPassword = asyncHandler(async (req, res, next) => {
-  // Get hased password
+  // Get hashed password
   const resetPasswordToken = crypto
     .createHash('sha256')
     .update(req.params.resetToken)
@@ -141,15 +213,15 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
 });
 
 //@desc         Update User Password
-//@route        PATCHE /api/v1/auth/update-user-password
+//@route        PATCH /api/v1/auth/update-user-password
 //@access       Private
 exports.updateUserPassword = asyncHandler(async (req, res, next) => {
   // 1) Get user
   const user = await User.findById(req.user.id).select('+password');
 
-  // Check if paasword is correcy
+  // Check if password is correcy
   if (!(await user.matchPassword(req.body.passwordCurrent))) {
-    return next(new ErrorResponse('Paswword does not match.', 400));
+    return next(new ErrorResponse('Password does not match.', 400));
   }
   // Update password
   user.password = req.body.password;
